@@ -1,0 +1,8 @@
+namePrefix: ipam-
+
+commonLabels:
+  cluster.x-k8s.io/provider: "infrastructure-metal3"
+
+bases:
+- ../../config/default
+

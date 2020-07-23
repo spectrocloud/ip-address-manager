@@ -49,11 +49,14 @@ RELEASE_NOTES := $(TOOLS_DIR)/$(RELEASE_NOTES_BIN)
 # Define Docker related variables. Releases should modify and double check these vars.
 # REGISTRY ?= gcr.io/$(shell gcloud config get-value project)
 REGISTRY ?= quay.io/metal3-io
+SPECTRO_REGISTRY ?= gcr.io/spectro-images-public/metal3-io/ipam
 STAGING_REGISTRY := quay.io/metal3-io
 PROD_REGISTRY := quay.io/metal3-io
 IMAGE_NAME ?= ip-address-manager
 CONTROLLER_IMG ?= $(REGISTRY)/$(IMAGE_NAME)
+SPECTRO_CONTROLLER_IMG ?= $(SPECTRO_REGISTRY)/$(IMAGE_NAME)
 TAG ?= v1alpha1
+SPECTRO_TAG ?= v1alpha1
 ARCH ?= amd64
 ALL_ARCH = amd64 arm arm64 ppc64le s390x
 
@@ -218,6 +221,19 @@ docker-build: ## Build the docker image for controller-manager
 .PHONY: docker-push
 docker-push: ## Push the docker image
 	docker push $(CONTROLLER_IMG)-$(ARCH):$(TAG)
+
+## --------------------------------------
+## Docker - Spectro
+## --------------------------------------
+.PHONY: spectro-docker-build
+spectro-docker-build: ## Build the docker image for controller-manager
+	docker build --network=host --build-arg ARCH=$(ARCH) . -t $(SPECTRO_CONTROLLER_IMG):$(SPECTRO_TAG)
+	MANIFEST_IMG=$(SPECTRO_CONTROLLER_IMG) MANIFEST_TAG=$(SPECTRO_TAG) $(MAKE) set-manifest-image
+	$(MAKE) set-manifest-pull-policy
+
+.PHONY: spectro-docker-push
+spectro-docker-push: ## Push the docker image
+	docker push $(SPECTRO_CONTROLLER_IMG):$(SPECTRO_TAG)
 
 ## --------------------------------------
 ## Docker — All ARCH
