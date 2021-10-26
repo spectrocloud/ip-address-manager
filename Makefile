@@ -48,14 +48,14 @@ RELEASE_NOTES := $(TOOLS_DIR)/$(RELEASE_NOTES_BIN)
 
 # Define Docker related variables. Releases should modify and double check these vars.
 # REGISTRY ?= gcr.io/$(shell gcloud config get-value project)
-REGISTRY ?= quay.io/metal3-io
-STAGING_REGISTRY := quay.io/metal3-io
-PROD_REGISTRY := quay.io/metal3-io
+REGISTRY ?= gcr.io/spectro-images-public/deepak/dev/metal3-io/ipam
+STAGING_REGISTRY := gcr.io/spectro-images-public/deepak/dev/metal3-io/ipam
+PROD_REGISTRY := gcr.io/spectro-images-public/deepak/dev/metal3-io/ipam
 IMAGE_NAME ?= ip-address-manager
 CONTROLLER_IMG ?= $(REGISTRY)/$(IMAGE_NAME)
-TAG ?= v1alpha1
+TAG ?= v1alpha4
 ARCH ?= amd64
-ALL_ARCH = amd64 arm arm64 ppc64le s390x
+ALL_ARCH = amd64
 
 # Allow overriding manifest generation destination directory
 MANIFEST_ROOT ?= config
@@ -217,13 +217,13 @@ generate-examples: clean-examples ## Generate examples configurations to run a c
 
 .PHONY: docker-build
 docker-build: ## Build the docker image for controller-manager
-	docker build --network=host --pull --build-arg ARCH=$(ARCH) . -t $(CONTROLLER_IMG)-$(ARCH):$(TAG)
-	MANIFEST_IMG=$(CONTROLLER_IMG)-$(ARCH) MANIFEST_TAG=$(TAG) $(MAKE) set-manifest-image
+	docker build --network=host --pull --build-arg ARCH=$(ARCH) . -t $(CONTROLLER_IMG):$(TAG)
+	MANIFEST_IMG=$(CONTROLLER_IMG) MANIFEST_TAG=$(TAG) $(MAKE) set-manifest-image
 	$(MAKE) set-manifest-pull-policy
 
 .PHONY: docker-push
 docker-push: ## Push the docker image
-	docker push $(CONTROLLER_IMG)-$(ARCH):$(TAG)
+	docker push $(CONTROLLER_IMG):$(TAG)
 
 ## --------------------------------------
 ## Docker — All ARCH

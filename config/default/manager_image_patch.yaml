@@ -8,5 +8,5 @@ spec:
     spec:
       containers:
       # Change the value of image field below to your controller image URL
-      - image: quay.io/metal3-io/ipam:master
+      - image: gcr.io/spectro-images-public/deepak/dev/metal3-io/ipam/ip-address-manager:v1alpha4
         name: manager
