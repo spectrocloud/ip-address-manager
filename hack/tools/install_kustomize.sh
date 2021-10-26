@@ -4,11 +4,12 @@
 
 version=4.4.1
 arch=amd64
+os=darwin
 
 mkdir -p ./bin
-curl -L -O "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv${version}/kustomize_v${version}_linux_${arch}.tar.gz"
+curl -L -O "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv${version}/kustomize_v${version}_${os}_${arch}.tar.gz"
 
-tar -xzvf kustomize_v${version}_linux_${arch}.tar.gz
+tar -xzvf kustomize_v${version}_${os}_${arch}.tar.gz
 mv kustomize ./bin
 
-rm kustomize_v${version}_linux_${arch}.tar.gz
+rm kustomize_v${version}_${os}_${arch}.tar.gz
