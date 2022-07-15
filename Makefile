@@ -47,12 +47,12 @@ KUSTOMIZE := $(TOOLS_BIN_DIR)/kustomize
 
 # Define Docker related variables. Releases should modify and double check these vars.
 # REGISTRY ?= gcr.io/$(shell gcloud config get-value project)
-REGISTRY ?= gcr.io/spectro-images-public/deepak/dev/metal3-io/ipam
-STAGING_REGISTRY := gcr.io/spectro-images-public/deepak/dev/metal3-io/ipam
-PROD_REGISTRY := gcr.io/spectro-images-public/deepak/dev/metal3-io/ipam
+REGISTRY ?= gcr.io/spectro-dev-public/deepak/dev/metal3-io/ipam
+STAGING_REGISTRY := gcr.io/spectro-dev-public/deepak/dev/metal3-io/ipam
+PROD_REGISTRY := gcr.io/spectro-dev-public/deepak/dev/metal3-io/ipam
 IMAGE_NAME ?= ip-address-manager
 CONTROLLER_IMG ?= $(REGISTRY)/$(IMAGE_NAME)
-TAG ?= v1alpha4
+TAG ?= v1.1.3-20220715
 ARCH ?= amd64
 ALL_ARCH = amd64
 
