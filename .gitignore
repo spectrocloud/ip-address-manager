@@ -25,3 +25,5 @@ tilt.d/*
 
 out
 releasenotes
+
+.vscode
