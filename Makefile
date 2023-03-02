@@ -52,7 +52,7 @@ STAGING_REGISTRY := gcr.io/spectro-dev-public/deepak/dev/metal3-io/ipam
 PROD_REGISTRY := gcr.io/spectro-dev-public/deepak/dev/metal3-io/ipam
 IMAGE_NAME ?= ip-address-manager
 CONTROLLER_IMG ?= $(REGISTRY)/$(IMAGE_NAME)
-TAG ?= v1.1.3-20220715
+TAG ?= v1.1.3-$(shell date +%Y%m%d)
 ARCH ?= amd64
 ALL_ARCH = amd64
 
