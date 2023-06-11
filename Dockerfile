@@ -16,6 +16,10 @@
 FROM registry.hub.docker.com/library/golang:1.19.8 as builder
 WORKDIR /workspace
 
+# FIPS
+ARG CRYPTO_LIB
+ENV GOEXPERIMENT=${CRYPTO_LIB:+boringcrypto}
+
 # Run this with docker build --build_arg $(go env GOPROXY) to override the goproxy
 ARG goproxy=https://proxy.golang.org
 ENV GOPROXY=$goproxy

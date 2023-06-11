@@ -19,6 +19,21 @@
 SHELL:=/usr/bin/env bash
 
 .DEFAULT_GOAL:=help
+# Fips Flags
+FIPS_ENABLE ?= ""
+
+RELEASE_LOC := release
+ifeq ($(FIPS_ENABLE),yes)
+  RELEASE_LOC := release-fips
+endif
+
+SPECTRO_VERSION ?= 4.0.0-dev
+TAG ?= v1.1.3-spectro-${SPECTRO_VERSION}
+ARCH ?= amd64
+# ALL_ARCH = amd64 arm arm64 ppc64le s390x
+ALL_ARCH = amd64 
+
+REGISTRY ?= gcr.io/spectro-dev-public/$(USER)/${RELEASE_LOC}
 
 # Use GOPROXY environment variable if set
 GOPROXY := $(shell go env GOPROXY)
@@ -47,14 +62,10 @@ KUSTOMIZE := $(TOOLS_BIN_DIR)/kustomize
 
 # Define Docker related variables. Releases should modify and double check these vars.
 # REGISTRY ?= gcr.io/$(shell gcloud config get-value project)
-REGISTRY ?= gcr.io/spectro-dev-public/deepak/dev/metal3-io/ipam
 STAGING_REGISTRY := gcr.io/spectro-dev-public/deepak/dev/metal3-io/ipam
 PROD_REGISTRY := gcr.io/spectro-dev-public/deepak/dev/metal3-io/ipam
 IMAGE_NAME ?= ip-address-manager
 CONTROLLER_IMG ?= $(REGISTRY)/$(IMAGE_NAME)
-TAG ?= v1.1.3-$(shell date +%Y%m%d)
-ARCH ?= amd64
-ALL_ARCH = amd64
 
 # Allow overriding manifest generation destination directory
 MANIFEST_ROOT ?= config
@@ -213,13 +224,13 @@ generate-examples: clean-examples ## Generate examples configurations to run a c
 
 .PHONY: docker-build
 docker-build: ## Build the docker image for controller-manager
-	docker build --network=host --pull --build-arg ARCH=$(ARCH) . -t $(CONTROLLER_IMG):$(TAG)
+	docker build --network=host --pull  --build-arg CRYPTO_LIB=${FIPS_ENABLE} --build-arg ARCH=$(ARCH) . -t $(CONTROLLER_IMG)-$(ARCH):$(TAG)
 	MANIFEST_IMG=$(CONTROLLER_IMG) MANIFEST_TAG=$(TAG) $(MAKE) set-manifest-image
 	$(MAKE) set-manifest-pull-policy
 
 .PHONY: docker-push
 docker-push: ## Push the docker image
-	docker push $(CONTROLLER_IMG):$(TAG)
+	docker push $(CONTROLLER_IMG)-$(ARCH):$(TAG)
 
 ## --------------------------------------
 ## Docker — All ARCH
