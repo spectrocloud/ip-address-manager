@@ -13,8 +13,12 @@
 # limitations under the License.
 
 # Build the manager binary on golang image
-FROM registry.hub.docker.com/library/golang:1.19.8 as builder
+FROM golang:1.19.10-alpine3.18 as builder
 WORKDIR /workspace
+
+
+RUN apk update
+RUN apk add git gcc g++ curl
 
 # FIPS
 ARG CRYPTO_LIB
@@ -41,9 +45,16 @@ COPY controllers/ controllers/
 
 # Build
 ARG ARCH
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=${ARCH} \
+RUN  if [ ${CRYPTO_LIB} ]; \
+    then \
+    CGO_ENABLED=1 GOOS=linux GOARCH=${ARCH} \
+    go build -a -ldflags '-linkmode=external -extldflags "-static"' \
+    -o manager . ;\
+    else \
+    CGO_ENABLED=0 GOOS=linux GOARCH=${ARCH} \
     go build -a -ldflags '-extldflags "-static"' \
-    -o manager .
+    -o manager . ;\
+    fi
 
 # Copy the controller-manager into a thin image
 FROM gcr.io/distroless/static:nonroot
