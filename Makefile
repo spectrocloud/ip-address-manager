@@ -21,6 +21,8 @@ SHELL:=/usr/bin/env bash
 .DEFAULT_GOAL:=help
 # Fips Flags
 FIPS_ENABLE ?= ""
+BUILDER_GOLANG_VERSION ?= 1.21
+BUILD_ARGS = --build-arg CRYPTO_LIB=${FIPS_ENABLE} --build-arg BUILDER_GOLANG_VERSION=${BUILDER_GOLANG_VERSION}
 
 RELEASE_LOC := release
 ifeq ($(FIPS_ENABLE),yes)
@@ -31,7 +33,7 @@ SPECTRO_VERSION ?= 4.0.0-dev
 TAG ?= v1.1.3-spectro-${SPECTRO_VERSION}
 ARCH ?= amd64
 # ALL_ARCH = amd64 arm arm64 ppc64le s390x
-ALL_ARCH = amd64 
+ALL_ARCH = amd64 arm64
 
 REGISTRY ?= gcr.io/spectro-dev-public/$(USER)/${RELEASE_LOC}
 
@@ -224,7 +226,7 @@ generate-examples: clean-examples ## Generate examples configurations to run a c
 
 .PHONY: docker-build
 docker-build: ## Build the docker image for controller-manager
-	docker build --network=host --pull  --build-arg CRYPTO_LIB=${FIPS_ENABLE} --build-arg ARCH=$(ARCH) . -t $(CONTROLLER_IMG)-$(ARCH):$(TAG)
+	docker buildx build --network=host --pull --load --platform linux/${ARCH} ${BUILD_ARGS} --build-arg CRYPTO_LIB=${FIPS_ENABLE} --build-arg goproxy=$(GOPROXY) --build-arg ARCH=$(ARCH)  --build-arg  LDFLAGS="$(LDFLAGS)" . -t $(CONTROLLER_IMG)-$(ARCH):$(TAG)
 	MANIFEST_IMG=$(CONTROLLER_IMG) MANIFEST_TAG=$(TAG) $(MAKE) set-manifest-image
 	$(MAKE) set-manifest-pull-policy
 
