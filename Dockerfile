@@ -13,8 +13,9 @@
 # limitations under the License.
 
 # Build the manager binary on golang image
-FROM golang:1.19.10-alpine3.18 as builder
-WORKDIR /workspace
+ARG BUILDER_GOLANG_VERSION
+# First stage: build the executable.
+FROM --platform=$TARGETPLATFORM gcr.io/spectro-images-public/golang:${BUILDER_GOLANG_VERSION}-alpine as toolchain
 
 
 RUN apk update
@@ -28,6 +29,9 @@ ENV GOEXPERIMENT=${CRYPTO_LIB:+boringcrypto}
 ARG goproxy=https://proxy.golang.org
 ENV GOPROXY=$goproxy
 
+FROM toolchain as builder
+WORKDIR /workspace
+
 # Copy the Go Modules manifests
 COPY go.mod go.mod
 COPY go.sum go.sum
@@ -35,7 +39,9 @@ COPY api/go.mod api/go.mod
 COPY api/go.sum api/go.sum
 # Cache deps before building and copying source so that we don't need to re-download as much
 # and so that source changes don't invalidate our downloaded layer
-RUN go mod download
+RUN  --mount=type=cache,target=/root/.local/share/golang \
+     --mount=type=cache,target=/go/pkg/mod \
+     go mod download
 
 # Copy the sources
 COPY main.go main.go
@@ -45,19 +51,22 @@ COPY controllers/ controllers/
 
 # Build
 ARG ARCH
-RUN  if [ ${CRYPTO_LIB} ]; \
-    then \
-    CGO_ENABLED=1 GOOS=linux GOARCH=${ARCH} \
-    go build -a -ldflags '-linkmode=external -extldflags "-static"' \
-    -o manager . ;\
-    else \
-    CGO_ENABLED=0 GOOS=linux GOARCH=${ARCH} \
-    go build -a -ldflags '-extldflags "-static"' \
-    -o manager . ;\
-    fi
+RUN  --mount=type=cache,target=/root/.cache/go-build \
+    --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.local/share/golang \
+    if [ ${CRYPTO_LIB} ];\
+     then \
+        GOARCH=${ARCH} go-build-fips.sh -a -o manager . ;\
+     else \
+        GOARCH=${ARCH} go-build-static.sh -a -o manager . ;\
+     fi
+
+RUN if [ "${CRYPTO_LIB}" ]; then assert-static.sh manager; fi
+RUN if [ "${CRYPTO_LIB}" ]; then assert-fips.sh manager; fi
+RUN scan-govulncheck.sh manager
 
 # Copy the controller-manager into a thin image
-FROM gcr.io/distroless/static:nonroot
+FROM gcr.io/distroless/static:latest
 WORKDIR /
 COPY --from=builder /workspace/manager .
 # Use uid of nonroot user (65532) because kubernetes expects numeric user when applying pod security policies
