@@ -32,6 +32,8 @@ ENV GOPROXY=$goproxy
 FROM toolchain as builder
 WORKDIR /workspace
 
+ARG CRYPTO_LIB
+
 # Copy the Go Modules manifests
 COPY go.mod go.mod
 COPY go.sum go.sum
@@ -44,10 +46,7 @@ RUN  --mount=type=cache,target=/root/.local/share/golang \
      go mod download
 
 # Copy the sources
-COPY main.go main.go
-COPY api/ api/
-COPY ipam/ ipam/
-COPY controllers/ controllers/
+COPY . .
 
 # Build
 ARG ARCH
@@ -56,9 +55,9 @@ RUN  --mount=type=cache,target=/root/.cache/go-build \
     --mount=type=cache,target=/root/.local/share/golang \
     if [ ${CRYPTO_LIB} ];\
      then \
-        GOARCH=${ARCH} go-build-fips.sh -a -o manager . ;\
+        GOARCH=${ARCH} go-build-fips.sh -a -o manager github.com/metal3-io/ip-address-manager ;\
      else \
-        GOARCH=${ARCH} go-build-static.sh -a -o manager . ;\
+        GOARCH=${ARCH} go-build-static.sh -a -o manager github.com/metal3-io/ip-address-manager ;\
      fi
 
 RUN if [ "${CRYPTO_LIB}" ]; then assert-static.sh manager; fi
