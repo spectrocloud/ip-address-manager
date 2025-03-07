@@ -12,17 +12,26 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Support FROM override
-ARG BUILD_IMAGE=docker.io/golang:1.23.6@sha256:927112936d6b496ed95f55f362cc09da6e3e624ef868814c56d55bd7323e0959
-ARG BASE_IMAGE=gcr.io/distroless/static:nonroot@sha256:9ecc53c269509f63c69a266168e4a687c7eb8c0cfd753bd8bfcaa4f58a90876f
-
 # Build the manager binary on golang image
-FROM $BUILD_IMAGE as builder
-WORKDIR /workspace
+ARG BUILDER_GOLANG_VERSION
+# First stage: build the executable.
+FROM --platform=$TARGETPLATFORM us-docker.pkg.dev/palette-images/build-base-images/golang:${BUILDER_GOLANG_VERSION}-alpine as toolchain
+
+RUN apk update
+RUN apk add git gcc g++ curl
+
+# FIPS
+ARG CRYPTO_LIB
+ENV GOEXPERIMENT=${CRYPTO_LIB:+boringcrypto}
 
 # Run this with docker build --build_arg $(go env GOPROXY) to override the goproxy
 ARG goproxy=https://proxy.golang.org
 ENV GOPROXY=$goproxy
+
+FROM toolchain as builder
+WORKDIR /workspace
+
+ARG CRYPTO_LIB
 
 # Copy the Go Modules manifests
 COPY go.mod go.mod
@@ -31,22 +40,31 @@ COPY api/go.mod api/go.mod
 COPY api/go.sum api/go.sum
 # Cache deps before building and copying source so that we don't need to re-download as much
 # and so that source changes don't invalidate our downloaded layer
-RUN go mod download
+RUN  --mount=type=cache,target=/root/.local/share/golang \
+     --mount=type=cache,target=/go/pkg/mod \
+     go mod download
 
 # Copy the sources
-COPY main.go main.go
-COPY api/ api/
-COPY ipam/ ipam/
-COPY controllers/ controllers/
+COPY . .
 
 # Build
 ARG ARCH
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=${ARCH} \
-    go build -a -ldflags '-extldflags "-static"' \
-    -o manager .
+RUN  --mount=type=cache,target=/root/.cache/go-build \
+    --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.local/share/golang \
+    if [ ${CRYPTO_LIB} ];\
+     then \
+        GOARCH=${ARCH} go-build-fips.sh -a -o manager github.com/metal3-io/ip-address-manager ;\
+     else \
+        GOARCH=${ARCH} go-build-static.sh -a -o manager github.com/metal3-io/ip-address-manager ;\
+     fi
+
+RUN if [ "${CRYPTO_LIB}" ]; then assert-static.sh manager; fi
+RUN if [ "${CRYPTO_LIB}" ]; then assert-fips.sh manager; fi
+RUN scan-govulncheck.sh manager
 
 # Copy the controller-manager into a thin image
-FROM $BASE_IMAGE
+FROM gcr.io/distroless/static:latest
 WORKDIR /
 COPY --from=builder /workspace/manager .
 # Use uid of nonroot user (65532) because kubernetes expects numeric user when applying pod security policies
