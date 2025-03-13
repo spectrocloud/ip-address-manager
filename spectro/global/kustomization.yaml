@@ -2,75 +2,144 @@ namePrefix: ipam-
 
 namespace: capi-webhook-system
 
-commonLabels:
-  cluster.x-k8s.io/provider: "infrastructure-metal3"
 
-bases:
-  - ../../config/manager
-  - ../../config/crd
-  - ../../config/certmanager
-  - ../../config/webhook
 
-patchesStrategicMerge:
-  - ../../config/default/manager_image_patch.yaml
-  - ../../config/default/manager_pull_policy_patch.yaml
-  - ../../config/default/manager_webhook_patch.yaml
-  - ../../config/default/webhookcainjection_patch.yaml
 
-vars:
-  - name: CERTIFICATE_NAMESPACE # namespace of the certificate CR
-    objref:
-      kind: Certificate
-      group: cert-manager.io
-      version: v1
-      name: serving-cert # this name should match the one in certificate.yaml
-    fieldref:
-      fieldpath: metadata.namespace
-  - name: CERTIFICATE_NAME
-    objref:
-      kind: Certificate
-      group: cert-manager.io
-      version: v1
-      name: serving-cert # this name should match the one in certificate.yaml
-  - name: SERVICE_NAMESPACE # namespace of the service
-    objref:
-      kind: Service
-      version: v1
-      name: webhook-service
-    fieldref:
-      fieldpath: metadata.namespace
-  - name: SERVICE_NAME
-    objref:
-      kind: Service
-      version: v1
-      name: webhook-service
 
 configurations:
-  - ../../config/default/kustomizeconfig.yaml
+- ../../config/default/kustomizeconfig.yaml
 
-patchesJson6902:
-  - target:
-      group: apps
-      kind: Deployment
-      name: controller-manager
-      namespace: system
-      version: v1
-    path: patch_service_account.yaml
-  - target:
-      group: apiextensions.k8s.io
-      version: v1
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- ../../config/manager
+- ../../config/crd
+- ../../config/certmanager
+- ../../config/webhook
+labels:
+- includeSelectors: true
+  pairs:
+    cluster.x-k8s.io/provider: infrastructure-metal3
+patches:
+- path: patch_service_account.yaml
+  target:
+    group: apps
+    kind: Deployment
+    name: controller-manager
+    namespace: system
+    version: v1
+- path: patch_crd_webhook_namespace.yaml
+  target:
+    group: apiextensions.k8s.io
+    kind: CustomResourceDefinition
+    name: ippools.ipam.metal3.io
+    version: v1
+- path: patch_crd_webhook_namespace.yaml
+  target:
+    group: apiextensions.k8s.io
+    kind: CustomResourceDefinition
+    name: ipaddresses.ipam.metal3.io
+    version: v1
+- path: patch_crd_webhook_namespace.yaml
+  target:
+    group: apiextensions.k8s.io
+    kind: CustomResourceDefinition
+    name: ipclaims.ipam.metal3.io
+    version: v1
+- path: ../../config/default/manager_image_patch.yaml
+- path: ../../config/default/manager_pull_policy_patch.yaml
+- path: ../../config/default/manager_webhook_patch.yaml
+- path: ../../config/default/webhookcainjection_patch.yaml
+replacements:
+- source:
+    fieldPath: metadata.namespace
+    group: cert-manager.io
+    kind: Certificate
+    name: serving-cert
+    version: v1
+  targets:
+  - fieldPaths:
+    - .metadata.annotations.[cert-manager.io/inject-ca-from]
+    options:
+      create: true
+      delimiter: /
+    select:
+      kind: ValidatingWebhookConfiguration
+  - fieldPaths:
+    - .metadata.annotations.[cert-manager.io/inject-ca-from]
+    options:
+      create: true
+      delimiter: /
+    select:
+      kind: MutatingWebhookConfiguration
+  - fieldPaths:
+    - .metadata.annotations.[cert-manager.io/inject-ca-from]
+    options:
+      create: true
+      delimiter: /
+    select:
       kind: CustomResourceDefinition
-      name: ippools.ipam.metal3.io
-    path: patch_crd_webhook_namespace.yaml
-  - target:
-      group: apiextensions.k8s.io
-      version: v1
+- source:
+    fieldPath: .metadata.name
+    group: cert-manager.io
+    kind: Certificate
+    name: serving-cert
+    version: v1
+  targets:
+  - fieldPaths:
+    - .metadata.annotations.[cert-manager.io/inject-ca-from]
+    options:
+      create: true
+      delimiter: /
+      index: 1
+    select:
+      kind: ValidatingWebhookConfiguration
+  - fieldPaths:
+    - .metadata.annotations.[cert-manager.io/inject-ca-from]
+    options:
+      create: true
+      delimiter: /
+      index: 1
+    select:
+      kind: MutatingWebhookConfiguration
+  - fieldPaths:
+    - .metadata.annotations.[cert-manager.io/inject-ca-from]
+    options:
+      create: true
+      delimiter: /
+      index: 1
+    select:
       kind: CustomResourceDefinition
-      name: ipaddresses.ipam.metal3.io
-    path: patch_crd_webhook_namespace.yaml
-  - target:
-      group: apiextensions.k8s.io
+- source:
+    fieldPath: .metadata.name
+    kind: Service
+    name: webhook-service
+    version: v1
+  targets:
+  - fieldPaths:
+    - .spec.dnsNames.0
+    - .spec.dnsNames.1
+    options:
+      create: true
+      delimiter: .
+    select:
+      group: cert-manager.io
+      kind: Certificate
       version: v1
-      kind: CustomResourceDefinition
-      name: ipclaims.ipam.metal3.io
-    path: patch_crd_webhook_namespace.yaml
+- source:
+    fieldPath: .metadata.namespace
+    kind: Service
+    name: webhook-service
+    version: v1
+  targets:
+  - fieldPaths:
+    - .spec.dnsNames.0
+    - .spec.dnsNames.1
+    options:
+      create: true
+      delimiter: .
+      index: 1
+    select:
+      group: cert-manager.io
+      kind: Certificate
+      version: v1

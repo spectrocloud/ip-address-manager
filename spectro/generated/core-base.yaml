@@ -33,7 +33,7 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: metadata.namespace
-        image: quay.io/metal3-io/ip-address-manager:main
+        image: gcr.io/spectro-dev-public/kunzhou/release/ip-address-manager:v1.9.4-spectro-4.0.0-dev
         imagePullPolicy: IfNotPresent
         name: manager
         securityContext:
