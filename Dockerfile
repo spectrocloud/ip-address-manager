@@ -62,7 +62,8 @@ RUN  --mount=type=cache,target=/root/.cache/go-build \
 
 RUN if [ "${CRYPTO_LIB}" ]; then assert-static.sh manager; fi
 RUN if [ "${CRYPTO_LIB}" ]; then assert-fips.sh manager; fi
-RUN scan-govulncheck.sh manager
+# Removed as part of PCP-6049
+# RUN scan-govulncheck.sh manager
 
 # Copy the controller-manager into a thin image
 FROM gcr.io/distroless/static:latest
