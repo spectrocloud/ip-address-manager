@@ -35,3 +35,4 @@ out
 *~
 *.tmp
 .DS_Store
+vendor/
