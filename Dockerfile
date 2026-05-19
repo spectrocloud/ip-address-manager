@@ -15,7 +15,7 @@
 # Build the manager binary on golang image
 ARG BUILDER_GOLANG_VERSION
 # First stage: build the executable.
-FROM --platform=$TARGETPLATFORM us-docker.pkg.dev/palette-images/build-base-images/golang:${BUILDER_GOLANG_VERSION}-alpine as toolchain
+FROM --platform=$TARGETPLATFORM us-central1-docker.pkg.dev/palette-images-dev/hardened-images/builder/golang:${BUILDER_GOLANG_VERSION}-alpine as toolchain
 
 RUN apk update
 RUN apk add git gcc g++ curl
